@@ -1,6 +1,8 @@
 import smtplib
 import os
 import zipfile
+import mimetypes
+
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
@@ -9,57 +11,58 @@ usuario = "robo.dalba@gmail.com"
 senha = "jxrt cohu soik efhm"
 
 # =========================
-# 📦 CRIAR ZIP CORRETAMENTE
+# 📦 CRIAR ZIP
 # =========================
-def criar_zip(pasta_or_arquivo, destino_zip):
+def criar_zip(pasta_ou_arquivo, destino_zip):
     """
-    Cria um arquivo zip a partir de uma pasta ou arquivo.
+    Cria um arquivo ZIP a partir de uma pasta ou arquivo.
     Mantém estrutura de diretórios.
     """
 
     # garante diretório do zip
-    os.makedirs(os.path.dirname(destino_zip), exist_ok=True)
+    pasta_destino = os.path.dirname(destino_zip)
+    if pasta_destino:
+        os.makedirs(pasta_destino, exist_ok=True)
 
     with zipfile.ZipFile(destino_zip, "w", zipfile.ZIP_DEFLATED) as zipf:
 
-        if os.path.isdir(pasta_or_arquivo):
-            for raiz, dirs, arquivos in os.walk(pasta_or_arquivo):
+        if os.path.isdir(pasta_ou_arquivo):
+
+            for raiz, dirs, arquivos in os.walk(pasta_ou_arquivo):
                 for arquivo in arquivos:
                     caminho_completo = os.path.join(raiz, arquivo)
 
-                    # mantém estrutura relativa da pasta
-                    arcname = os.path.relpath(caminho_completo, pasta_or_arquivo)
+                    # mantém estrutura relativa
+                    arcname = os.path.relpath(caminho_completo, pasta_ou_arquivo)
 
                     zipf.write(caminho_completo, arcname)
 
         else:
-            zipf.write(pasta_or_arquivo, os.path.basename(pasta_or_arquivo))
+            zipf.write(pasta_ou_arquivo, os.path.basename(pasta_ou_arquivo))
 
 
 # =========================
-# 📧 ENVIAR EMAIL COM ZIP
+# 📎 ANEXAR ARQUIVO GENÉRICO
 # =========================
-def enviar_email_com_zip(destinatario,assunto,corpo,caminho_zip,usuario,senha,smtp="smtp.gmail.com",porta=465):
+def anexar_arquivo(msg, caminho_arquivo):
 
-    if not os.path.exists(caminho_zip):
-        raise FileNotFoundError(f"Arquivo ZIP não encontrado: {caminho_zip}")
+    if not os.path.exists(caminho_arquivo):
+        raise FileNotFoundError(f"Arquivo não encontrado: {caminho_arquivo}")
 
-    msg = MIMEMultipart()
-    msg["From"] = usuario
-    msg["To"] = destinatario
-    msg["Subject"] = assunto
+    tipo_mime, _ = mimetypes.guess_type(caminho_arquivo)
 
-    # corpo do email
-    msg.attach(MIMEText(corpo, "plain", "utf-8"))
+    if tipo_mime is None:
+        tipo_mime = "application/octet-stream"
 
-    # anexo ZIP
-    with open(caminho_zip, "rb") as f:
-        parte = MIMEBase("application", "octet-stream")
+    main_type, sub_type = tipo_mime.split("/")
+
+    with open(caminho_arquivo, "rb") as f:
+        parte = MIMEBase(main_type, sub_type)
         parte.set_payload(f.read())
 
     encoders.encode_base64(parte)
 
-    nome_arquivo = os.path.basename(caminho_zip)
+    nome_arquivo = os.path.basename(caminho_arquivo)
 
     parte.add_header(
         "Content-Disposition",
@@ -68,10 +71,37 @@ def enviar_email_com_zip(destinatario,assunto,corpo,caminho_zip,usuario,senha,sm
 
     msg.attach(parte)
 
+
+# =========================
+# 📧 ENVIAR EMAIL COM ANEXOS
+# =========================
+def enviar_email(destinatario,
+                 assunto,
+                 corpo,
+                 arquivos,
+                 usuario,
+                 senha,
+                 smtp="smtp.gmail.com",
+                 porta=465):
+
+    msg = MIMEMultipart()
+    msg["From"] = usuario
+    msg["To"] = destinatario
+    msg["Subject"] = assunto
+
+    # corpo do e-mail
+    msg.attach(MIMEText(corpo, "plain", "utf-8"))
+
+    # aceita 1 ou vários arquivos
+    if isinstance(arquivos, str):
+        arquivos = [arquivos]
+
+    for arquivo in arquivos:
+        anexar_arquivo(msg, arquivo)
+
     # envio SMTP seguro
     with smtplib.SMTP_SSL(smtp, porta) as server:
         server.login(usuario, senha)
         server.send_message(msg)
 
-    print("✅ Email com ZIP enviado com sucesso!")
-
+    print("✅ Email enviado com sucesso!")
