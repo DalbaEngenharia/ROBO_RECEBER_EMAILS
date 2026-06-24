@@ -2,7 +2,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-def responder_email(msg_original, destinatario, assunto_original):
+def responder_email_erro(msg_original, destinatario, assunto_original):
     remetente = "robo.dalba@gmail.com"
     senha =  "jxrt cohu soik efhm"
 
