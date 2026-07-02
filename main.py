@@ -9,6 +9,7 @@ import sys
 from enviar_email_erro import enviar_email_erro
 from usuario import *
 from enviar_email_sucesso import *
+from verificar_remetente_assunto import verificar_remtente_assunto
 import os
 
 mail = imaplib.IMAP4_SSL("imap.gmail.com")
@@ -75,45 +76,51 @@ try:
                                 pass
                            
                             case "Alterar_horario_de_acesso_ao_sistema":
-                                import logging
+                                if verificar_remtente_assunto(remetente, assunto): 
+                                    print("OK")
+                                    import logging
 
-                                # logging.basicConfig(
-                                #     filename="automacao.log",
-                                #     level=logging.DEBUG,
-                                #     format="%(asctime)s %(levelname)s %(message)s",
-                                #     encoding="utf-8"
-                                #     )
-                                os.system("taskkill /f /im chrome.exe")
-                                os.system("taskkill /f /im chromedriver.exe")
-                                dados = pegar_corpo_email(msg)
+                                    # logging.basicConfig(
+                                    #     filename="automacao.log",
+                                    #     level=logging.DEBUG,
+                                    #     format="%(asctime)s %(levelname)s %(message)s",
+                                    #     encoding="utf-8"
+                                    #     )
+                                    os.system("taskkill /f /im chrome.exe")
+                                    os.system("taskkill /f /im chromedriver.exe")
+                                    dados = pegar_corpo_email(msg)
 
-                                print("Dados recebidos:")
-                                print(dados)
-                                try:
+                                    print("Dados recebidos:")
+                                    print(dados)
+                                    try:
 
-                                    caminho_script = r"C:\Users\DALBAPY\Desktop\Scripts\Ajuste-de-horarios-base-requisicao\main.py"
+                                        caminho_script = r"C:\Users\DALBAPY\Desktop\Scripts\Ajuste-de-horarios-base-requisicao\main.py"
 
-                                 #   logging.info(f"Executando: {caminho_script}")
+                                    #   logging.info(f"Executando: {caminho_script}")
 
-                                    result = subprocess.run(
-                                        [sys.executable, caminho_script, dados],
-                                        text=True,
-                                        capture_output=True
-                                    )
-                                    if result.returncode == 0:
-                                        enviar_email_sucesso(
-                                            "Horários alterados com sucesso",
-                                            f"Os horários do usuario foram alterados com sucesso.\n\nDados:\n{dados}"
+                                        result = subprocess.run(
+                                            [sys.executable, caminho_script, dados],
+                                            text=True,
+                                            capture_output=True
                                         )
-                                    if result.returncode != 0:
-                                        enviar_email_erro("Erro lançamento de horarios",f"Houve um erro ao alterar os horarios {dados}")
+                                        if result.returncode == 0:
+                                            enviar_email_sucesso(
+                                                "Horários alterados com sucesso",
+                                                f"Os horários do usuario foram alterados com sucesso.\n\nDados:\n{dados}"
+                                            )
+                                        if result.returncode != 0:
+                                            enviar_email_erro("Erro lançamento de horarios",f"Houve um erro ao alterar os horarios {dados}")
 
-                                except Exception as e:
-                                    logging.exception(e)
-                                    enviar_email_erro(
-                                        "Erro lançamento de horarios",
-                                        f"Houve um erro ao alterar os horarios\n\n{dados}\n\nErro: {e}"
-    )
+                                    except Exception as e:
+                                        logging.exception(e)
+                                        enviar_email_erro(
+                                            "Erro lançamento de horarios",
+                                            f"Houve um erro ao alterar os horarios\n\n{dados}\n\nErro: {e}"
+                                        )
+                                else: 
+                                    print("Não permitido")
+                                    destinatario = remetente
+                                    responder_email_erro(msg, destinatario, assunto)
                             case _:
                                 destinatario = remetente
                                 responder_email_erro(msg, destinatario, assunto)
