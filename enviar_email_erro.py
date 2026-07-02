@@ -10,6 +10,7 @@ def enviar_email_erro(assunto, corpo):
     remetente = "robo.dalba@gmail.com"
     senha = "jxrt cohu soik efhm"
     destinatario = ["gustavo.elicker@dalba.com.br","marlon.prates@dalba.com.br"]
+    # destinatario = ["gustavo.elicker@dalba.com.br"]
     for x in destinatario: 
         msg = MIMEText(corpo, "plain", "utf-8")
         msg["Subject"] = assunto

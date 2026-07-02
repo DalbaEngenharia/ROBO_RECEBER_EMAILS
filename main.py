@@ -8,9 +8,8 @@ import subprocess
 import sys
 from enviar_email_erro import enviar_email_erro
 from usuario import *
-
-caminho_base = r"C:\Users\DALBAPY\Desktop\Scripts"
-caminho_local = r"C:\Users\gustavo.elicker\Documents\PROGRAMAS"
+from enviar_email_sucesso import *
+import os
 
 mail = imaplib.IMAP4_SSL("imap.gmail.com")
 mail.login(usuario, senha)
@@ -71,48 +70,50 @@ try:
 
                         match assunto: 
                             case "Iniciar_Relatorio_P7":
-                                caminho_base+r"local_do_script_p7",
+                                pass
                             case "Iniciar_relatorio_K":
-                                caminho_base+r"local_do_script_k",
+                                pass
+                           
                             case "Alterar_horario_de_acesso_ao_sistema":
+                                import logging
+
+                                # logging.basicConfig(
+                                #     filename="automacao.log",
+                                #     level=logging.DEBUG,
+                                #     format="%(asctime)s %(levelname)s %(message)s",
+                                #     encoding="utf-8"
+                                #     )
+                                os.system("taskkill /f /im chrome.exe")
+                                os.system("taskkill /f /im chromedriver.exe")
                                 dados = pegar_corpo_email(msg)
+
+                                print("Dados recebidos:")
                                 print(dados)
-                                import json
                                 try:
-                                    caminho_script = r"C:\Users\gustavo.elicker\Documents\PROGRAMAS\Ajuste-de-horarios-base\main.py"
+
+                                    caminho_script = r"C:\Users\DALBAPY\Desktop\Scripts\Ajuste-de-horarios-base-requisicao\main.py"
+
+                                 #   logging.info(f"Executando: {caminho_script}")
 
                                     result = subprocess.run(
-                                        [sys.executable, caminho_script, json.dumps(dados)],
+                                        [sys.executable, caminho_script, dados],
                                         text=True,
                                         capture_output=True
                                     )
-
-                                    print("STDOUT:", result.stdout)
-                                    print("STDERR:", result.stderr)
-
-                                    # 🔴 ERRO REAL DO SCRIPT (não cai no except)
+                                    if result.returncode == 0:
+                                        enviar_email_sucesso(
+                                            "Horários alterados com sucesso",
+                                            f"Os horários do usuario foram alterados com sucesso.\n\nDados:\n{dados}"
+                                        )
                                     if result.returncode != 0:
-                                        erro = f"""
-                                Erro ao executar script de horários
-
-                                STDOUT:
-                                {result.stdout}
-
-                                STDERR:
-                                {result.stderr}
-                                """
-                                        enviar_email_erro("Erro na liberação de horários", erro)
+                                        enviar_email_erro("Erro lançamento de horarios",f"Houve um erro ao alterar os horarios {dados}")
 
                                 except Exception as e:
-                                    # 🔴 ERRO DO SUBPROCESS (falha ao iniciar execução)
+                                    logging.exception(e)
                                     enviar_email_erro(
-                                        "Erro crítico ao chamar subprocess",
-                                        str(e)
-                                    )
-                                    print("ERRO AO MUDAR HORARIOS:", e)
-                                #def enviar_email_com_zip(destinatario,assunto,corpo,caminho_zip,usuario,senha,smtp="smtp.gmail.com",porta=465):
-                                # enviar_email(remetente,"RE-"+assunto, "Segue o anexo solicitado: ",caminho_arquivo,usuario,senha )
-                                # os.remove(caminho_arquivo)
+                                        "Erro lançamento de horarios",
+                                        f"Houve um erro ao alterar os horarios\n\n{dados}\n\nErro: {e}"
+    )
                             case _:
                                 destinatario = remetente
                                 responder_email_erro(msg, destinatario, assunto)
